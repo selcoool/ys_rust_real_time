@@ -1,4 +1,3 @@
-
 use actix::prelude::*;
 use actix_web_actors::ws;
 
@@ -11,7 +10,6 @@ use crate::{
 };
 
 use super::ws_server::{
-    Broadcast,
     Connect,
     Disconnect,
     WsMessage,
@@ -25,8 +23,7 @@ pub struct WsSession {
 }
 
 impl Actor for WsSession {
-    type Context =
-        ws::WebsocketContext<Self>;
+    type Context = ws::WebsocketContext<Self>;
 
     fn started(
         &mut self,
@@ -42,43 +39,47 @@ impl Actor for WsSession {
                 }
             )
             .into_actor(self)
-            .map(|res, act, ctx| {
+            .map(
+                |res, act, ctx| {
 
-                act.id =
-                    res.unwrap();
+                    act.id =
+                        res.unwrap();
 
-                let pool =
-                    act.pool.clone();
+                    let pool =
+                        act.pool.clone();
 
-                let addr =
-                    ctx.address();
+                    let addr =
+                        ctx.address();
 
-                actix::spawn(
-                    async move {
+                    actix::spawn(
+                        async move {
 
-                        let products =
-                            product_repository::get_all(
-                                &pool
-                            )
-                            .await
-                            .unwrap_or_else(
-                                |_| Vec::<Product>::new()
+                            let products =
+                                product_repository::get_all(
+                                    &pool,
+                                )
+                                .await
+                                .unwrap_or_else(
+                                    |_| {
+                                        Vec::<Product>::new()
+                                    },
+                                );
+
+                            let payload =
+                                json!({
+                                    "event":"init",
+                                    "products":products
+                                });
+
+                            addr.do_send(
+                                WsMessage(
+                                    payload.to_string(),
+                                ),
                             );
-
-                        let payload =
-                            json!({
-                                "event":"init",
-                                "products":products
-                            });
-
-                        addr.do_send(
-                            WsMessage(
-                                payload.to_string()
-                            )
-                        );
-                    }
-                );
-            })
+                        },
+                    );
+                },
+            )
             .wait(ctx);
     }
 
@@ -90,14 +91,14 @@ impl Actor for WsSession {
         self.server.do_send(
             Disconnect {
                 id: self.id,
-            }
+            },
         );
     }
 }
 
 impl Handler<WsMessage>
-    for WsSession
-{
+for WsSession {
+
     type Result = ();
 
     fn handle(
@@ -114,7 +115,7 @@ impl StreamHandler<
     Result<
         ws::Message,
         ws::ProtocolError,
-    >
+    >,
 > for WsSession
 {
     fn handle(
@@ -130,39 +131,28 @@ impl StreamHandler<
 
             Ok(
                 ws::Message::Ping(
-                    msg
-                )
+                    msg,
+                ),
             ) => {
                 ctx.pong(&msg);
             }
 
             Ok(
                 ws::Message::Text(
-                    text
-                )
+                    text,
+                ),
             ) => {
 
-                if text.starts_with(
-                    "ALL "
-                )
-                {
-
-                    let message =
-                        text.replace(
-                            "ALL ",
-                            ""
-                        );
-
-                    self.server.do_send(
-                        Broadcast {
-                            message,
-                        }
-                    );
-                }
+                println!(
+                    "WS MESSAGE: {}",
+                    text,
+                );
             }
 
             Ok(
-                ws::Message::Close(_)
+                ws::Message::Close(
+                    _,
+                ),
             ) => {
                 ctx.stop();
             }

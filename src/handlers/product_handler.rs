@@ -48,7 +48,8 @@ pub async fn create_product(
         .await
         .unwrap();
 
-    let product =
+
+    let _ =
         product_repository::get_by_id(
             &pool,
             id as i64,
@@ -56,10 +57,30 @@ pub async fn create_product(
         .await
         .unwrap();
 
-    let payload = json!({
-        "event":"created",
-        "product":product
-    });
+    // let product =
+    //     product_repository::get_by_id(
+    //         &pool,
+    //         id as i64,
+    //     )
+    //     .await
+    //     .unwrap();
+
+
+    // let payload = json!({
+    //     "event":"created",
+    //     "product":product
+    // });
+
+
+    let products =
+    product_repository::get_all(&pool)
+        .await
+        .unwrap();
+
+let payload = json!({
+    "event":"init",
+    "products":products
+});
 
     ws_server.do_send(
         Broadcast {
@@ -88,17 +109,35 @@ pub async fn update_product(
     .await
     .unwrap();
 
-    let product =
-        product_repository::get_by_id(
-            &pool,
-            id,
-        )
+    let _ =
+    product_repository::get_by_id(
+        &pool,
+        id,
+    )
+    .await
+    .unwrap();
+
+    // let product =
+    //     product_repository::get_by_id(
+    //         &pool,
+    //         id,
+    //     )
+    //     .await
+    //     .unwrap();
+
+    // let payload = json!({
+    //     "event":"updated",
+    //     "product":product
+    // });
+
+    let products =
+    product_repository::get_all(&pool)
         .await
         .unwrap();
 
     let payload = json!({
-        "event":"updated",
-        "product":product
+        "event":"init",
+        "products":products
     });
 
     ws_server.do_send(
@@ -126,9 +165,21 @@ pub async fn delete_product(
     .await
     .unwrap();
 
+    // let payload = json!({
+    //     "event":"deleted",
+    //     "id":id
+    // });
+
+
+
+    let products =
+    product_repository::get_all(&pool)
+        .await
+        .unwrap();
+
     let payload = json!({
-        "event":"deleted",
-        "id":id
+        "event":"init",
+        "products":products
     });
 
     ws_server.do_send(
